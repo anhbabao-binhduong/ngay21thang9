@@ -5,9 +5,9 @@
         android:title="Trang chủ" />
 
     <item
-        android:id="@+id/nav_transaction"
-        android:icon="@drawable/ic_wallet"
-        android:title="Sổ giao dịch" />
+        android:id="@+id/nav_statistics"
+        android:icon="@drawable/chart"
+        android:title="Thống kê" />
 
 
     <item

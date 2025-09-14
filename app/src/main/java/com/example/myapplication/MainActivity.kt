@@ -1,8 +1,10 @@
 package com.example.myapplication
 
 import android.app.DatePickerDialog
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.MenuItem
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -10,23 +12,17 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
-import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.*
-import com.google.firebase.auth.FirebaseAuth
-import android.view.Menu
-import android.view.MenuItem
-import androidx.appcompat.widget.PopupMenu
-import android.content.Intent
-
-
-
 
 class MainActivity : AppCompatActivity() {
 
@@ -40,12 +36,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var fabAdd: FloatingActionButton
     private lateinit var tvTotalAmount: TextView
     private lateinit var rvExpenses: androidx.recyclerview.widget.RecyclerView
+    private lateinit var tvSeeAll: TextView
 
     private val db = FirebaseFirestore.getInstance()
     private val expensesCollection = db.collection("expenses")
 
-    private val currentUser = FirebaseAuth.getInstance().currentUser
-    private val userId = currentUser?.uid
+    // Auth động
+    private val auth: FirebaseAuth get() = FirebaseAuth.getInstance()
+    private val currentUser get() = auth.currentUser
+    private val userId get() = currentUser?.uid
 
     private val categories = arrayOf(
         "Thuê nhà", "Hóa đơn điện", "Hóa đơn nước", "Hóa đơn internet",
@@ -54,16 +53,13 @@ class MainActivity : AppCompatActivity() {
 
     private var isFormVisible = false
     private var totalAmount = 0.0
-    private val currentMonth = SimpleDateFormat("MM/yyyy", Locale.getDefault()).format(Date())
     private lateinit var expenseAdapter: ExpenseAdapter
     private val expenseList = mutableListOf<Expense>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Dùng đúng layout bạn đã khai báo
         setContentView(R.layout.activity_main)
-
-        // Thiết lập Toolbar làm ActionBar
-//        setSupportActionBar(findViewById(R.id.toolbar))
 
         initializeViews()
         setupRecyclerView()
@@ -71,8 +67,20 @@ class MainActivity : AppCompatActivity() {
         setupDatePicker()
         setupFabButton()
         setupButtons()
-        loadExpenses()
+        setupSeeAll()
+
+        // Set mặc định hôm nay cho nút ngày
+        btnDate.text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
+
+        // 🔹 Trang chủ: load TẤT CẢ chi tiêu (mọi tháng)
+        loadAllExpenses()
         setupBottomNavigation()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        hideForm()
+        loadAllExpenses()
     }
 
     private fun initializeViews() {
@@ -86,23 +94,15 @@ class MainActivity : AppCompatActivity() {
         fabAdd = findViewById(R.id.fabAdd)
         tvTotalAmount = findViewById(R.id.tvTotalAmount)
         rvExpenses = findViewById(R.id.rvExpenses)
+        tvSeeAll = findViewById(R.id.tvSeeAll)
     }
 
     private fun setupRecyclerView() {
         expenseAdapter = ExpenseAdapter(expenseList)
-
-
         rvExpenses.layoutManager = LinearLayoutManager(this)
         rvExpenses.adapter = expenseAdapter
-
-        // Thêm divider giữa các item
-        val dividerItemDecoration = DividerItemDecoration(this, LinearLayoutManager.VERTICAL)
-        rvExpenses.addItemDecoration(dividerItemDecoration)
-    }
-
-    private fun showExpenseDetail(expense: Expense) {
-        // Hiển thị dialog hoặc activity chi tiết
-        Toast.makeText(this, "Chi tiết: ${expense.description}", Toast.LENGTH_SHORT).show()
+        rvExpenses.addItemDecoration(DividerItemDecoration(this, LinearLayoutManager.VERTICAL))
+        // RecyclerView cao 180dp theo layout -> hiển thị ~2 item và có thể scroll
     }
 
     private fun setupCategorySpinner() {
@@ -113,41 +113,44 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupDatePicker() {
         val calendar = Calendar.getInstance()
-
         btnDate.setOnClickListener {
-            val datePicker = DatePickerDialog(
+            val dialog = DatePickerDialog(
                 this,
                 { _, year, month, dayOfMonth ->
                     calendar.set(year, month, dayOfMonth)
-                    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                    btnDate.text = dateFormat.format(calendar.time)
+                    btnDate.text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                        .format(calendar.time)
                 },
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
                 calendar.get(Calendar.DAY_OF_MONTH)
             )
-            datePicker.show()
+            dialog.show()
         }
+    }
+
+    // Yêu cầu login trước khi làm action
+    private fun requireLoginThen(action: () -> Unit) {
+        if (currentUser == null) {
+            Toast.makeText(this, "Bạn cần đăng nhập để sử dụng chức năng này", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, LoginActivity::class.java))
+        } else action()
     }
 
     private fun setupFabButton() {
         fabAdd.setOnClickListener {
-            if (isFormVisible) {
-                hideForm()
-            } else {
-                showForm()
-            }
+            requireLoginThen { if (isFormVisible) hideForm() else showForm() }
         }
     }
 
     private fun setupButtons() {
-        btnCancel.setOnClickListener {
-            hideForm()
-            clearForm()
-        }
+        btnCancel.setOnClickListener { hideForm(); clearForm() }
+        btnSave.setOnClickListener { requireLoginThen { saveExpense() } }
+    }
 
-        btnSave.setOnClickListener {
-            saveExpense()
+    private fun setupSeeAll() {
+        tvSeeAll.setOnClickListener {
+            requireLoginThen { startActivity(Intent(this, StatisticActivity::class.java)) }
         }
     }
 
@@ -177,117 +180,123 @@ class MainActivity : AppCompatActivity() {
         etAmount.text?.clear()
         etDescription.text?.clear()
         spinnerCategory.setSelection(0)
-        btnDate.text = "Chọn ngày"
+        btnDate.text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
     }
+
+    // Parse ngày an toàn (chấp nhận vài format thường gặp)
+    private fun safeParseDateOrNull(dateStr: String): Date? {
+        val patterns = listOf("dd/MM/yyyy", "d/M/yyyy", "dd-M-yyyy", "yyyy-MM-dd")
+        for (p in patterns) {
+            try {
+                val fmt = SimpleDateFormat(p, Locale.getDefault()).apply { isLenient = false }
+                return fmt.parse(dateStr)
+            } catch (_: Exception) { }
+        }
+        Log.w("ExpenseDate", "Không parse được ngày: $dateStr")
+        return null
+    }
+
+    private fun monthYearFrom(date: Date): String =
+        SimpleDateFormat("MM/yyyy", Locale.getDefault()).format(date)
 
     private fun saveExpense() {
         val amountText = etAmount.text.toString().trim()
         val description = etDescription.text.toString().trim()
         val category = spinnerCategory.selectedItem.toString()
-        val dateText = btnDate.text.toString()
+        val dateText = btnDate.text.toString().trim()
 
-        if (amountText.isEmpty()) {
-            etAmount.error = "Vui lòng nhập số tiền"
-            return
+        if (amountText.isEmpty()) { etAmount.error = "Vui lòng nhập số tiền"; return }
+        val amount = try { amountText.toDouble() } catch (_: NumberFormatException) {
+            etAmount.error = "Số tiền không hợp lệ"; return
         }
-
-        val amount = try {
-            amountText.toDouble()
-        } catch (e: NumberFormatException) {
-            etAmount.error = "Số tiền không hợp lệ"
-            return
+        if (dateText.isEmpty() || dateText.equals("Chọn ngày", ignoreCase = true)) {
+            Toast.makeText(this, "Vui lòng chọn ngày", Toast.LENGTH_SHORT).show(); return
         }
+        val uid = userId ?: run { startActivity(Intent(this, LoginActivity::class.java)); return }
 
-        if (dateText == "Chọn ngày") {
-            Toast.makeText(this, "Vui lòng chọn ngày", Toast.LENGTH_SHORT).show()
-            return
-        }
+        val pickedDate = safeParseDateOrNull(dateText) ?: Date()
+        val monthYear = monthYearFrom(pickedDate)
+        val pickedTime = pickedDate.time
 
-        // Tạo đối tượng expense
         val expense = hashMapOf(
-            "userId" to userId,
+            "userId" to uid,
             "amount" to amount,
             "description" to description,
             "category" to category,
-            "date" to dateText,
-            "monthYear" to currentMonth,
-            "timestamp" to System.currentTimeMillis(),
-            "createdAt" to com.google.firebase.Timestamp.now()
+            "date" to SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(pickedDate),
+            "monthYear" to monthYear,      // để trang Thống kê lọc theo tháng
+            "timestamp" to pickedTime,     // dùng sắp xếp
+            "createdAt" to Timestamp.now()
         )
 
-        // Lưu vào Firestore
         expensesCollection.add(expense)
-            .addOnSuccessListener { documentReference ->
-                Log.d("Firestore", "Document added with ID: ${documentReference.id}")
-
-                // Tạo expense object từ dữ liệu vừa lưu
+            .addOnSuccessListener { doc ->
                 val newExpense = Expense(
-                    id = documentReference.id,
+                    id = doc.id,
                     amount = amount,
                     description = description,
                     category = category,
-                    date = dateText,
-                    timestamp = System.currentTimeMillis()
+                    date = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(pickedDate),
+                    timestamp = pickedTime
                 )
 
-                // Thêm vào đầu danh sách và cập nhật adapter
+                // Trang chủ hiển thị TẤT CẢ, nên thêm trực tiếp vào đầu danh sách
                 expenseList.add(0, newExpense)
                 expenseAdapter.updateExpenses(expenseList)
 
-                // Cập nhật tổng tiền
                 totalAmount += amount
                 updateTotalAmount()
 
-                Toast.makeText(
-                    this,
-                    "Đã lưu chi tiêu: ${formatCurrency(amount)} VNĐ",
-                    Toast.LENGTH_SHORT
-                ).show()
-                hideForm()
-                clearForm()
+                hideForm(); clearForm()
+                Toast.makeText(this, "Đã lưu: ${formatCurrency(amount)} VNĐ", Toast.LENGTH_SHORT).show()
             }
             .addOnFailureListener { e ->
-                Log.w("Firestore", "Error adding document", e)
                 Toast.makeText(this, "Lỗi khi lưu: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 
-    private fun loadExpenses() {
-        expensesCollection
-            .whereEqualTo("userId", userId)
-            .whereEqualTo("monthYear", currentMonth)
-            .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
-            .get()
-            .addOnSuccessListener { documents ->
-                totalAmount = 0.0
-                expenseList.clear()
+    /** 🔹 Trang chủ: tải TẤT CẢ chi tiêu của user (mọi tháng) */
+    private fun loadAllExpenses() {
+        val uid = userId ?: run {
+            totalAmount = 0.0
+            expenseList.clear()
+            updateTotalAmount()
+            expenseAdapter.updateExpenses(expenseList)
+            return
+        }
 
-                for (document in documents) {
+        // Không dùng orderBy để tránh yêu cầu composite index; sort ở client
+        expensesCollection
+            .whereEqualTo("userId", uid)
+            .get()
+            .addOnSuccessListener { docs ->
+                totalAmount = 0.0
+                val tmp = mutableListOf<Expense>()
+                for (document in docs) {
                     val data = document.data
                     val expense = Expense(
                         id = document.id,
-                        amount = data["amount"] as? Double ?: 0.0,
+                        amount = (data["amount"] as? Number)?.toDouble() ?: 0.0,
                         description = data["description"] as? String ?: "",
                         category = data["category"] as? String ?: "",
                         date = data["date"] as? String ?: "",
-                        timestamp = data["timestamp"] as? Long ?: 0
+                        timestamp = (data["timestamp"] as? Number)?.toLong() ?: 0L
                     )
-
-                    expenseList.add(expense)
+                    tmp.add(expense)
                     totalAmount += expense.amount
                 }
 
+                // Sắp xếp mới nhất lên trên
+                tmp.sortByDescending { it.timestamp }
+
+                expenseList.clear()
+                expenseList.addAll(tmp)
+
                 updateTotalAmount()
                 expenseAdapter.updateExpenses(expenseList)
-
-                if (expenseList.isNotEmpty()) {
-                    Toast.makeText(this, "${expenseList.size} chi tiêu", Toast.LENGTH_SHORT).show()
-                }
             }
-            .addOnFailureListener { exception ->
-                Log.e("Firestore", "Error getting documents: ${exception.message}", exception)
-                Toast.makeText(this, "Firestore lỗi: ${exception.message}", Toast.LENGTH_SHORT)
-                    .show()
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Firestore lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 
@@ -295,80 +304,55 @@ class MainActivity : AppCompatActivity() {
         tvTotalAmount.text = "${formatCurrency(totalAmount)} VNĐ"
     }
 
-    private fun formatCurrency(amount: Double): String {
-        return "%,.0f".format(amount).replace(",", ".")
-    }
+    private fun formatCurrency(amount: Double): String =
+        "%,.0f".format(amount).replace(",", ".")
 
-
-    //kiểm tra phiene đăng nhập
+    // (nếu có menu_account)
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.menu_account -> {
-                // Lấy view làm anchor
-                val anchorView = findViewById<View>(R.id.menu_account)
-                showAccountPopupMenu(anchorView)
-                true
+                val anchorView = findViewById<View>(R.id.menu_account) ?: fabAdd
+                showAccountPopupMenu(anchorView); true
             }
-
             else -> super.onOptionsItemSelected(item)
         }
     }
 
     private fun setupBottomNavigation() {
         val bottomNavigation =
-            findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(
-                R.id.bottomNavigation
-            )
+            findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNavigation)
 
         bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.nav_home -> {
-                    hideForm()
+                R.id.nav_home -> { hideForm(); loadAllExpenses(); true }
+                R.id.nav_statistics -> {
+                    requireLoginThen {
+                        startActivity(Intent(this, StatisticActivity::class.java))
+                    }
                     true
                 }
-
-                R.id.nav_account -> {
-                    startActivity(Intent(this, ProfileActivity::class.java))
-                    true
-                }
-
+                R.id.nav_account -> { startActivity(Intent(this, ProfileActivity::class.java)); true }
                 else -> false
             }
         }
-
-
     }
+
     private fun showAccountPopupMenu(anchorView: View) {
         val popup = PopupMenu(this, anchorView)
         popup.menuInflater.inflate(R.menu.account_popup_menu, popup.menu)
-
-        val isLoggedIn = FirebaseAuth.getInstance().currentUser != null
+        val isLoggedIn = currentUser != null
         popup.menu.findItem(R.id.menu_login).isVisible = !isLoggedIn
         popup.menu.findItem(R.id.menu_logout).isVisible = isLoggedIn
         popup.menu.findItem(R.id.menu_profile).isVisible = isLoggedIn
 
         popup.setOnMenuItemClickListener { clickedItem ->
             when (clickedItem.itemId) {
-                R.id.menu_login -> {
-                    startActivity(Intent(this, LoginActivity::class.java))
-                    true
-                }
-
-                R.id.menu_logout -> {
-                    FirebaseAuth.getInstance().signOut()
-                    recreate()
-                    true
-                }
-
-                R.id.menu_profile -> {
-                    Toast.makeText(this, "Xem hồ sơ", Toast.LENGTH_SHORT).show()
-                    true
-                }
-
+                R.id.menu_login -> { startActivity(Intent(this, LoginActivity::class.java)); true }
+                R.id.menu_logout -> { FirebaseAuth.getInstance().signOut(); recreate(); true }
+                R.id.menu_profile -> { Toast.makeText(this, "Xem hồ sơ", Toast.LENGTH_SHORT).show(); true }
                 else -> false
             }
         }
-
         popup.show()
     }
 }

@@ -2,11 +2,13 @@ package com.example.myapplication
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import com.google.firebase.auth.FirebaseAuth
 import androidx.appcompat.app.AlertDialog
+import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.userProfileChangeRequest
+import com.google.firebase.firestore.FirebaseFirestore
 
 class RegisterActivity : AppCompatActivity() {
 
@@ -19,9 +21,8 @@ class RegisterActivity : AppCompatActivity() {
     private lateinit var txtGoLogin: TextView
 
     private fun isPasswordValid(password: String): Boolean {
-        val passwordRegex = Regex(
-            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@\$!%*?&])[A-Za-z\\d@\$!%*?&]{6,}$"
-        )
+        val passwordRegex =
+            Regex("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@\$!%*?&])[A-Za-z\\d@\$!%*?&]{6,}$")
         return passwordRegex.matches(password)
     }
 
@@ -29,10 +30,8 @@ class RegisterActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
 
-        // FirebaseAuth instance
         mAuth = FirebaseAuth.getInstance()
 
-        // Ánh xạ view từ XML
         edtUsername = findViewById(R.id.edtUsername)
         edtEmail = findViewById(R.id.edtEmail)
         edtPassword = findViewById(R.id.edtPassword)
@@ -40,7 +39,6 @@ class RegisterActivity : AppCompatActivity() {
         btnRegister = findViewById(R.id.btnRegister)
         txtGoLogin = findViewById(R.id.txtGoLogin)
 
-        // Xử lý sự kiện nút Đăng ký
         btnRegister.setOnClickListener {
             val username = edtUsername.text.toString().trim()
             val email = edtEmail.text.toString().trim()
@@ -51,72 +49,86 @@ class RegisterActivity : AppCompatActivity() {
                 Toast.makeText(this, "Vui lòng nhập đủ thông tin", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-
             if (password != confirmPassword) {
                 Toast.makeText(this, "Mật khẩu không khớp", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-
             if (!isPasswordValid(password)) {
                 AlertDialog.Builder(this)
                     .setTitle("Mật khẩu chưa hợp lệ")
                     .setMessage(
                         """
-            Mật khẩu phải thỏa mãn:
-            • Ít nhất 6 ký tự
-            • Có chữ thường
-            • Có chữ in hoa
-            • Có số
-            • Có ký tự đặc biệt
-            """.trimIndent()
+                        Mật khẩu phải thỏa mãn:
+                        • Ít nhất 6 ký tự
+                        • Có chữ thường
+                        • Có chữ in hoa
+                        • Có số
+                        • Có ký tự đặc biệt
+                        """.trimIndent()
                     )
-                    .setPositiveButton("OK") { dialogInterface, _ ->
-                        // Khi nhấn OK, xóa mật khẩu để user nhập lại
+                    .setPositiveButton("OK") { dialog, _ ->
                         edtPassword.text.clear()
                         edtConfirmPassword.text.clear()
                         edtPassword.requestFocus()
-                        dialogInterface.dismiss()
+                        dialog.dismiss()
                     }
-                    .setCancelable(false) // bắt buộc phải nhấn OK
+                    .setCancelable(false)
                     .show()
                 return@setOnClickListener
             }
 
-
-
-
-            // ✅ Nếu hợp lệ thì tiến hành đăng ký Firebase
+            // Đăng ký tài khoản
             mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this) { task ->
-                    if (task.isSuccessful) {
-                        val user = mAuth.currentUser
-                        val userId = user?.uid ?: return@addOnCompleteListener
-
-                        val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                        val userMap = hashMapOf(
-                            "uid" to userId,
-                            "username" to username,
-                            "email" to email,
-                            "createdAt" to com.google.firebase.Timestamp.now()
-                        )
-
-                        db.collection("users").document(userId).set(userMap)
-
-                        Toast.makeText(this, "Đăng ký thành công", Toast.LENGTH_SHORT).show()
-                        startActivity(Intent(this, LoginActivity::class.java))
-                        finish()
-                    } else {
+                    if (!task.isSuccessful) {
                         Toast.makeText(
                             this,
                             "Đăng ký thất bại: ${task.exception?.message}",
                             Toast.LENGTH_SHORT
                         ).show()
+                        return@addOnCompleteListener
                     }
+
+                    // Cập nhật displayName để ProfileActivity hiển thị đúng tên
+                    val user = mAuth.currentUser
+                    if (user == null) {
+                        Toast.makeText(this, "Không lấy được thông tin người dùng", Toast.LENGTH_SHORT).show()
+                        return@addOnCompleteListener
+                    }
+
+                    val profileUpdates = userProfileChangeRequest {
+                        displayName = username
+                        // photoUri = ... // nếu bạn có avatar mặc định
+                    }
+
+                    user.updateProfile(profileUpdates)
+                        .addOnSuccessListener {
+                            // (Tuỳ chọn) lưu thông tin vào Firestore
+                            val db = FirebaseFirestore.getInstance()
+                            val userMap = hashMapOf(
+                                "uid" to user.uid,
+                                "username" to username,
+                                "email" to email,
+                                "createdAt" to Timestamp.now()
+                            )
+                            db.collection("users").document(user.uid).set(userMap)
+
+                            // Reload để đảm bảo displayName có ngay
+                            user.reload().addOnCompleteListener {
+                                Toast.makeText(this, "Đăng ký thành công", Toast.LENGTH_SHORT).show()
+                                startActivity(Intent(this, LoginActivity::class.java))
+                                finish()
+                            }
+                        }
+                        .addOnFailureListener { e ->
+                            Toast.makeText(this, "Lỗi cập nhật tên: ${e.message}", Toast.LENGTH_SHORT).show()
+                            // Dù lỗi updateProfile, vẫn điều hướng nhưng Profile sẽ fallback từ email
+                            startActivity(Intent(this, LoginActivity::class.java))
+                            finish()
+                        }
                 }
         }
 
-
-        // Chuyển sang LoginActivity khi bấm TextView
         txtGoLogin.setOnClickListener {
             startActivity(Intent(this, LoginActivity::class.java))
         }

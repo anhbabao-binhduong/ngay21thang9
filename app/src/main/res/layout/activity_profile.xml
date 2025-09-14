@@ -1,75 +1,115 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:paddingTop="40dp"
+    android:background="#F7F9FC">
 
     <!-- Nội dung trang hồ sơ -->
     <LinearLayout
-        android:paddingTop="25dp"
         android:id="@+id/profileContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:layout_alignParentTop="true"
         android:layout_above="@id/bottomNavigation"
-        android:gravity="center_horizontal">
+        android:gravity="center_horizontal"
+        android:paddingTop="24dp">
 
-        <TextView
-            android:id="@+id/tvUsername"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Tên người dùng"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="12dp" />
-
+        <!-- Card thông tin -->
         <LinearLayout
-            android:id="@+id/layoutActions"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="327dp"
+            android:background="@drawable/btn_outline_blue"
             android:orientation="vertical"
-            android:layout_alignParentBottom="true"
-            android:padding="16dp"
-            android:gravity="center">
+            android:padding="20dp">
 
-            <Button
-                android:id="@+id/btnLogin"
+            <!-- Avatar + tên -->
+            <ImageView
+                android:id="@+id/imgAvatar"
+                android:layout_width="84dp"
+                android:layout_height="84dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="12dp"
+                android:contentDescription="@string/app_name"
+                android:padding="16dp"
+                android:src="@drawable/ic_person_48" />
+
+            <TextView
+                android:id="@+id/tvUsername"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="6dp"
+                android:text="Tên người dùng"
+                android:textColor="#1B1F2A"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvEmail"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="16dp"
+                android:text="user@email.com"
+                android:textColor="#6B7280"
+                android:textSize="14sp" />
+
+            <!-- Action buttons -->
+            <LinearLayout
+                android:id="@+id/layoutActions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Đăng nhập"
-                android:visibility="gone" />
+                android:gravity="center"
+                android:orientation="vertical">
 
-            <Button
-                android:id="@+id/btnLogout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Đăng xuất"
-                android:visibility="gone" />
+                <Button
+                    android:id="@+id/btnLogin"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/btn_primary_blue"
+                    android:text="Đăng nhập"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:visibility="gone" />
 
-            <Button
-                android:id="@+id/btnProfile"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Xem hồ sơ"
-                android:visibility="gone" />
+                <Button
+                    android:id="@+id/btnLogout"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/btn_outline_blue"
+                    android:text="Đăng xuất"
+                    android:textAllCaps="false"
+                    android:visibility="gone" />
 
+                <Button
+                    android:id="@+id/btnProfile"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:background="@drawable/btn_primary_blue"
+                    android:text="Xem hồ sơ"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:visibility="gone" />
+            </LinearLayout>
         </LinearLayout>
-
-
     </LinearLayout>
 
-    <!-- Bottom Navigation -->
+    <!-- Bottom Navigation (đồng bộ màu) -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:background="#EDEAEA"
+        android:background="@drawable/bg_bottom_nav"
+        app:itemIconTint="@color/nav_item_colors"
+        app:itemTextColor="@color/nav_item_colors"
+        app:labelVisibilityMode="labeled"
         app:menu="@menu/bottom_nav_menu"
-        app:itemIconTint="@color/colorPrimary"
-        app:itemTextColor="@color/colorPrimary" />
-
-
+        android:elevation="8dp"/>
 </RelativeLayout>

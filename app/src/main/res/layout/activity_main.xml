@@ -5,8 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:paddingTop="40dp"
+    android:background="#F7F9FC"
     tools:context=".MainActivity">
-
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
@@ -18,7 +18,7 @@
         android:visibility="gone" />
 
 
-    <!-- Header với tổng chi tiêu -->
+    <!-- Header -->
     <LinearLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
@@ -26,38 +26,66 @@
         android:orientation="vertical"
         android:gravity="center"
         android:padding="20dp"
-        android:background="@drawable/bg_header"
+        android:background="@drawable/bg_header_green"
         android:layout_marginBottom="16dp"
-        android:layout_below="@id/toolbar">
+        android:layout_below="@id/toolbar"
+        android:elevation="2dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Tổng chi tiêu tháng này"
-            android:textSize="16sp"
-            android:textColor="#666"
-            android:layout_marginBottom="8dp"/>
+            android:text="TỔNG CHI TIÊU"
+            android:textSize="20sp"
+            android:textColor="#EEF3FF"
+            android:letterSpacing="0.01"
+            android:layout_marginBottom="6dp"/>
 
         <TextView
             android:id="@+id/tvTotalAmount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="0 VNĐ"
-            android:textSize="24sp"
-            android:textColor="#2E7D32"
+            android:textSize="28sp"
+            android:textColor="#FFFFFF"
             android:textStyle="bold"/>
-
     </LinearLayout>
 
-    <!-- Danh sách chi tiêu -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvExpenses"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+    <!-- Nút xem tất cả đặt trên -->
+    <TextView
+        android:id="@+id/tvSeeAll"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_below="@id/headerLayout"
-        android:layout_above="@id/bottomNavigation"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="72dp"/>
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="20dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:text="XEM THỐNG KÊ HÀNG THÁNG"
+        android:textColor="#2D9431"
+        android:textStyle="bold" />
+
+    <!-- Danh sách chỉ hiển thị 2 item -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tvSeeAll"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="6dp"
+        app:cardBackgroundColor="@android:color/white"
+        app:cardUseCompatPadding="true">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvExpenses"
+            android:layout_width="match_parent"
+            android:layout_height="450dp"
+            android:padding="12dp"
+            android:clipToPadding="false"
+            android:overScrollMode="ifContentScrolls"
+            android:scrollbars="vertical"/>
+    </androidx.cardview.widget.CardView>
+
+
+
 
     <!-- Bottom Navigation -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
@@ -65,12 +93,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:background="#EDEAEA"
-        app:itemIconTint="@color/colorPrimary"
-        app:itemTextColor="@color/colorPrimary"
-        app:menu="@menu/bottom_nav_menu" />
+        android:background="@drawable/bg_bottom_nav"
+        app:itemIconTint="@color/nav_item_colors"
+        app:itemTextColor="@color/nav_item_colors"
+        app:labelVisibilityMode="labeled"
+        app:menu="@menu/bottom_nav_menu"
+        android:elevation="8dp"/>
 
-    <!-- Floating Action Button để thêm chi tiêu (nằm chung hàng với BottomNavigation) -->
+    <!-- FAB -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAdd"
         android:layout_width="wrap_content"
@@ -80,36 +110,45 @@
         android:layout_marginBottom="-20dp"
         android:contentDescription="Thêm chi tiêu mới"
         android:src="@drawable/ic_add"
-        app:backgroundTint="#FF6B6B"
+        app:backgroundTint="#2160F3"
         app:tint="#FFFFFF"
-        app:elevation="8dp"/>
+        app:elevation="10dp" />
 
-    <!-- Form nhập liệu (ban đầu ẩn) -->
+    <!-- Form (overlay) -->
     <LinearLayout
         android:id="@+id/formLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@drawable/bg_form"
-        android:padding="24dp"
+        android:padding="20dp"
         android:visibility="gone"
-        android:elevation="8dp"
-        android:layout_centerInParent="true">
+        android:elevation="12dp"
+        android:layout_centerInParent="true"
+        android:layout_margin="20dp">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Thêm chi tiêu mới"
-            android:textSize="20sp"
+            android:textSize="18sp"
             android:textStyle="bold"
+            android:textColor="#1B1F2A"
             android:gravity="center"
-            android:layout_marginBottom="16dp"/>
+            android:layout_marginBottom="12dp"/>
 
-        <!-- Nhập số tiền -->
+        <!-- Số tiền -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="12dp"
+            app:boxStrokeColor="#9BB1FF"
+            app:boxStrokeWidth="1dp"
+            app:boxStrokeWidthFocused="2dp"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusBottomEnd="12dp">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etAmount"
@@ -118,14 +157,20 @@
                 android:hint="Số tiền"
                 android:inputType="number"
                 android:maxLines="1"/>
-
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Nhập mô tả -->
+        <!-- Mô tả -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="12dp"
+            app:boxStrokeColor="#9BB1FF"
+            app:boxStrokeWidth="1dp"
+            app:boxStrokeWidthFocused="2dp"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusBottomEnd="12dp">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etDescription"
@@ -133,42 +178,38 @@
                 android:layout_height="wrap_content"
                 android:hint="Mô tả"
                 android:maxLines="1"/>
-
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Chọn nhóm chi tiêu -->
-        <LinearLayout
+        <!-- NHÓM (Spinner cho categories) -->
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginBottom="16dp">
+            android:text="Nhóm chi tiêu"
+            android:textColor="#4A5568"
+            android:textSize="14sp"
+            android:layout_marginBottom="6dp" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Chọn nhóm chi tiêu:"
-                android:textSize="14sp"
-                android:layout_marginBottom="8dp"/>
+        <Spinner
+            android:id="@+id/spinnerCategory"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:spinnerMode="dropdown"
+            android:background="@android:drawable/editbox_background"
+            android:layout_marginBottom="12dp" />
 
-            <Spinner
-                android:id="@+id/spinnerCategory"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@android:drawable/btn_dropdown"/>
-
-        </LinearLayout>
-
-        <!-- Chọn ngày -->
+        <!-- Ngày -->
         <Button
             android:id="@+id/btnDate"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:text="Chọn ngày"
-            android:layout_marginBottom="16dp"
-            android:backgroundTint="#FF6B6B"
-            android:textColor="#FFFFFF"/>
+            android:layout_marginBottom="12dp"
+            android:textColor="#FFFFFF"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            android:background="@drawable/btn_primary_blue"/>
 
-        <!-- Nút hành động -->
+        <!-- Actions -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -178,21 +219,23 @@
             <Button
                 android:id="@+id/btnCancel"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="42dp"
                 android:text="Hủy"
-                android:layout_marginEnd="8dp"
-                android:textColor="#FF6B6B"/>
+                android:textAllCaps="false"
+                android:textSize="15sp"
+                android:background="@drawable/btn_outline_blue"
+                android:layout_marginEnd="8dp"/>
 
             <Button
                 android:id="@+id/btnSave"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="42dp"
                 android:text="Lưu"
-                android:backgroundTint="#FF6B6B"
-                android:textColor="#FFFFFF"/>
-
+                android:textAllCaps="false"
+                android:textSize="15sp"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/btn_primary_blue"/>
         </LinearLayout>
 
     </LinearLayout>
-
 </RelativeLayout>

@@ -10,4 +10,5 @@
     <color name="colorPrimary">#FF6B6B</color>
     <color name="colorOnPrimary">#FFFFFF</color>
     <color name="colorInactive">#999999</color>
+    <color name="nav_item_colors">#2160F3</color>
 </resources>
