@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/menu_profile"
+        android:title="Hồ sơ"
+        android:icon="@drawable/ic_add" />
+<!--    sua lai ic_profile-->
+
+    <item
+        android:id="@+id/menu_login"
+        android:title="Đăng nhập"
+        android:icon="@drawable/ic_login" />
+
+    <item
+        android:id="@+id/menu_logout"
+        android:title="Đăng xuất"
+        android:icon="@drawable/ic_logout" />
+
+</menu>
